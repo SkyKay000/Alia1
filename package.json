@@ -1,7 +1,7 @@
 {
-  "name": "alia1",
+  "name": "telegram-location-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Telegram bot that allows users to share their location and add temporary points",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
@@ -10,9 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2",
-    "mongoose": "^6.5.2",
-    "node-telegram-bot-api": "^0.66.0",
     "telegraf": "^4.0.0",
     "node-schedule": "^2.0.0"
   }
