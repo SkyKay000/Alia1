@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Map</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+  <script>
+    async function initMap() {
+      const response = await fetch('/points');
+      const points = await response.json();
+
+      const map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 2,
+        center: { lat: 0, lng: 0 }
+      });
+
+      points.forEach(point => {
+        new google.maps.Marker({
+          position: { lat: point.lat, lng: point.lng },
+          map: map
+        });
+      });
+    }
+  </script>
+</head>
+<body onload="initMap()">
+  <div id="map"></div>
+</body>
+</html>
