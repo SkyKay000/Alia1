@@ -2,6 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 const express = require('express');
 const bodyParser = require('body-parser');
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
