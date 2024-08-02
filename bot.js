@@ -1,55 +1,68 @@
-const TelegramBot = require('node-telegram-bot-api');
-const mongoose = require('mongoose');
-const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
-app.use(express.static(path.join(__dirname, 'public')));
+const { Telegraf } = require('telegraf');
+const schedule = require('node-schedule');
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const bot = new Telegraf('ТВОЙ_ТОКЕН');
 
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+let points = [];
 
-const PointSchema = new mongoose.Schema({
-  userId: String,
-  lat: Number,
-  lng: Number
-});
-
-const Point = mongoose.model('Point', PointSchema);
-
-bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Welcome! Send your location to mark a point.");
-});
-
-bot.on('location', (msg) => {
-  const { id: userId } = msg.chat;
-  const { latitude: lat, longitude: lng } = msg.location;
-
-  const newPoint = new Point({ userId, lat, lng });
-
-  newPoint.save()
-    .then(() => {
-      bot.sendMessage(userId, "Location saved successfully!");
-    })
-    .catch(err => {
-      bot.sendMessage(userId, "Failed to save location.");
+// Команда старт
+bot.start((ctx) => {
+    ctx.reply('Привіт! Надішли мені своє місцезнаходження, щоб я міг показати його на карті.', {
+        reply_markup: {
+            keyboard: [
+                [{ text: "Надіслати місцезнаходження", request_location: true }]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: true,
+        }
     });
 });
 
-const app = express();
-app.use(bodyParser.json());
+// Обробка локації
+bot.on('location', (ctx) => {
+    const { latitude, longitude } = ctx.message.location;
 
-app.get('/points', async (req, res) => {
-  try {
-    const points = await Point.find();
-    res.json(points);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    // Додавання точки до списку
+    const point = {
+        user: ctx.from.username,
+        latitude,
+        longitude,
+        time: new Date()
+    };
+    points.push(point);
+
+    // Відправка повідомлення про додавання точки
+    ctx.reply(Точка додана: ${latitude}, ${longitude}. Вона буде доступна 20 хвилин.);
+
+    // Видалення точки через 20 хвилин
+    schedule.scheduleJob(new Date(Date.now() + 20 * 60 * 1000), () => {
+        points = points.filter(p => p !== point);
+        ctx.reply('Точка була видалена.');
+    });
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(Server running on port ${port});
+// Команда для перегляду точок
+bot.command('points', (ctx) => {
+    if (points.length === 0) {
+        ctx.reply('Немає активних точок.');
+    } else {
+        points.forEach(point => {
+            ctx.replyWithLocation(point.latitude, point.longitude, {
+                reply_markup: {
+                    inline_keyboard: [[{ text: 'Видалити точку', callback_data: delete_${point.latitude}_${point.longitude} }]]
+                }
+            });
+        });
+    }
 });
+
+// Видалення точки
+bot.action(/delete_(.+)_(.+)/, (ctx) => {
+    const [latitude, longitude] = ctx.match[1].split('_');
+    points = points.filter(p => p.latitude != latitude || p.longitude != longitude);
+    ctx.reply('Точка видалена.');
+});
+
+bot.launch()
+    .then(() => console.log('Бот запущений'))
+    .catch((err) => console.error('Помилка при запуску бота:', err));
